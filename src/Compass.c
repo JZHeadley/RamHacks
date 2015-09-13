@@ -1,17 +1,29 @@
 #include <pebble.h>
 
+#define KEY_DATA 5
 static Layer *s_path_layer;
 static Window *main_window;
 static TextLayer *distance;
 static TextLayer *timeTo;
-static GBitmap *directionArrow;
 static GBitmap *s_background_bitmap;
 static BitmapLayer *arrow;
 static TextLayer *output;
 static TextLayer *s_output_layer;
 static double bering = 0;
-static double heading;
 static BitmapLayer *s_bitmap_layer;
+
+static void inbox_dropped_callback(AppMessageResult reason, void *context) {
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");
+}
+
+static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context) {
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Outbox send failed!");
+}
+
+static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
+  APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
+}
+
 // Vector paths for the compass needles
 static const GPathInfo NEEDLE_NORTH_POINTS = { 
   3,
@@ -23,35 +35,6 @@ static GPath *s_needle_north;
 
 static void compass_handler(CompassHeadingData data) 
 {
-  // Allocate a static output buffer
-  static char s_buffer[32];
-
-  // Determine status of the compass
-  switch (data.compass_status) 
-	{
-    // Compass data is not yet valid
-    case CompassStatusDataInvalid:
-      text_layer_set_text(s_output_layer, "Compass data invalid");
-      break;
-
-    // Compass is currently calibrating, but a heading is available
-    case CompassStatusCalibrating:
-      snprintf(s_buffer, sizeof(s_buffer), "Compass calibrating\nHeading: %d", TRIGANGLE_TO_DEG((int)data.true_heading));
-      text_layer_set_text(s_output_layer, s_buffer);
-      break;
-    // Compass data is ready for use, write the heading in to the buffer
-    case CompassStatusCalibrated: 
-      snprintf(s_buffer, sizeof(s_buffer), "Compass calibrated\nHeading: %d", TRIGANGLE_TO_DEG((int)data.true_heading));
-      break;
-
-    // CompassStatus is unknown
-    default:
-      snprintf(s_buffer, sizeof(s_buffer), "Unknown CompassStatus: %d", data.compass_status);
-      text_layer_set_text(s_output_layer, s_buffer);
-      break;
-  }
-	
-	gpath_rotate_to(s_needle_north, bering);
 }
 
 static void path_layer_update_callback(Layer *path, GContext *ctx) 
@@ -65,7 +48,9 @@ static void path_layer_update_callback(Layer *path, GContext *ctx)
 
   // then put a white circle on top               
   graphics_context_set_fill_color(ctx, GColorWhite);
-  graphics_fill_circle(ctx, path_center, 2);                      
+  graphics_fill_circle(ctx, path_center, 2);
+	gpath_rotate_to(s_needle_north, bering);
+	layer_mark_dirty(s_path_layer);
 }
 
 static void main_window_load(Window *window)
@@ -112,14 +97,17 @@ static void main_window_load(Window *window)
 
 
 
-static void send(int key, int msg) {
+/*
+static void send(int key, int msg) 
+{
   DictionaryIterator *iter;
   app_message_outbox_begin(&iter);
   dict_write_int(iter, key, &msg, sizeof(int), true);
   app_message_outbox_send();
 }
+*/
 
-static void received_handler(DictionaryIterator *iter, void *context) 
+static void inbox_received_callback(DictionaryIterator *iter, void *context) 
 {
 	Tuple *t = dict_read_first(iter);
 	while(t != NULL) 
@@ -156,20 +144,24 @@ static void outbox_failed_handler(DictionaryIterator *iter, AppMessageResult rea
 
 static void init ()
 {
+	app_message_register_inbox_received(inbox_received_callback);
+	app_message_register_inbox_dropped(inbox_dropped_callback);
+	app_message_register_outbox_failed(outbox_failed_callback);
+	app_message_register_outbox_sent(outbox_sent_callback);
+	app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
 	main_window = window_create();
-	
 	window_set_window_handlers(main_window, (WindowHandlers)
 	{
 		.load = main_window_load,
 		.unload = main_window_unload
 	});
+		
+	app_message_register_outbox_sent(outbox_sent_handler); 
+	app_message_register_outbox_failed(outbox_failed_handler); 
+	app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
 	compass_service_set_heading_filter(10);
 	compass_service_subscribe(&compass_handler); 
 	window_stack_push(main_window, true);
-	
-	app_message_register_outbox_sent(outbox_sent_handler); 
-	app_message_register_outbox_failed(outbox_failed_handler); 
-	app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum()); 
 
 }
 

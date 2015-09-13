@@ -1,5 +1,7 @@
 {
-    "appKeys": {},
+    "appKeys": {
+        "KEY_DATA": 5
+    },
     "capabilities": [
         "location"
     ],
