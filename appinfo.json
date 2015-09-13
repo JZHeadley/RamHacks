@@ -4,10 +4,15 @@
         ""
     ],
     "companyName": "austins0692@gmail.com",
-    "longName": "RamHacks",
+    "longName": "Capitol One ATM Locator",
     "projectType": "native",
     "resources": {
         "media": [
+            {
+                "file": "images/Arrow2.png",
+                "name": "direction_arrow",
+                "type": "png"
+            },
             {
                 "file": "images/compass_background.png",
                 "name": "COMPASS_BACKGROUND",
@@ -16,7 +21,7 @@
         ]
     },
     "sdkVersion": "3",
-    "shortName": "RamHacks",
+    "shortName": "ATM Locate",
     "targetPlatforms": [
         "aplite",
         "basalt"
