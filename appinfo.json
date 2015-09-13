@@ -1,7 +1,7 @@
 {
     "appKeys": {},
     "capabilities": [
-        ""
+        "location"
     ],
     "companyName": "austins0692@gmail.com",
     "longName": "Capitol One ATM Locator",
