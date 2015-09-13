@@ -1,0 +1,29 @@
+{
+    "appKeys": {},
+    "capabilities": [
+        ""
+    ],
+    "companyName": "austins0692@gmail.com",
+    "longName": "RamHacks",
+    "projectType": "native",
+    "resources": {
+        "media": [
+            {
+                "file": "images/compass_background.png",
+                "name": "COMPASS_BACKGROUND",
+                "type": "png"
+            }
+        ]
+    },
+    "sdkVersion": "3",
+    "shortName": "RamHacks",
+    "targetPlatforms": [
+        "aplite",
+        "basalt"
+    ],
+    "uuid": "5ec1ba20-9b7f-4bbf-af47-6818a16e1a30",
+    "versionLabel": "1.0",
+    "watchapp": {
+        "watchface": false
+    }
+}
