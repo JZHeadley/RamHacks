@@ -8,9 +8,12 @@ static TextLayer *timeTo;
 static GBitmap *s_background_bitmap;
 static BitmapLayer *arrow;
 static TextLayer *output;
-static TextLayer *s_output_layer;
-static double bering = 0;
+static TextLayer *s_output_layer, *s_heading_layer;
+double bering = 0;
 static BitmapLayer *s_bitmap_layer;
+static GPath *s_needle_north;
+#define KEY_BERING 1
+
 
 static void inbox_dropped_callback(AppMessageResult reason, void *context) {
   APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");
@@ -29,12 +32,13 @@ static const GPathInfo NEEDLE_NORTH_POINTS = {
   3,
   (GPoint[]) { { -8, 0 }, { 8, 0 }, { 0, -36 } }
 };
-static GPath *s_needle_north;
-#define KEY_BERING     1
 
 
-static void compass_handler(CompassHeadingData data) 
-{
+
+static void compass_handler(CompassHeadingData heading_data)
+{	
+	gpath_rotate_to(s_needle_north, (heading_data.magnetic_heading-bering));
+	layer_mark_dirty(s_path_layer);					
 }
 
 static void path_layer_update_callback(Layer *path, GContext *ctx) 
@@ -49,7 +53,6 @@ static void path_layer_update_callback(Layer *path, GContext *ctx)
   // then put a white circle on top               
   graphics_context_set_fill_color(ctx, GColorWhite);
   graphics_fill_circle(ctx, path_center, 2);
-	gpath_rotate_to(s_needle_north, bering);
 	layer_mark_dirty(s_path_layer);
 }
 
@@ -68,12 +71,16 @@ static void main_window_load(Window *window)
   bitmap_layer_set_bitmap(s_bitmap_layer, s_background_bitmap);
 	bitmap_layer_set_compositing_mode(s_bitmap_layer, GCompOpAnd);
   layer_add_child(window_layer, bitmap_layer_get_layer(s_bitmap_layer));
+	
+
+	
 	// Create the layer in which we will draw the compass needles
   s_path_layer = layer_create(bounds);
   
   //  Define the draw callback to use for this layer
   layer_set_update_proc(s_path_layer, path_layer_update_callback);
   layer_add_child(window_layer, s_path_layer);
+	
 	s_needle_north = gpath_create(&NEEDLE_NORTH_POINTS);
 	GPoint center = GPoint(bounds.size.w / 2, bounds.size.h / 2);
   gpath_move_to(s_needle_north, center);
@@ -81,8 +88,13 @@ static void main_window_load(Window *window)
   
 	
 	//distance
+	
 	distance = text_layer_create(GRect(0, 0, 144, 30));
-	text_layer_set_text(distance, "Distance is x m");
+	//text_layer_set_text(distance, "Distance is x m");
+	static char s_heading_buf[16];
+  snprintf(s_heading_buf, sizeof(s_heading_buf),
+  "%i",(int)bering);
+	text_layer_set_text(distance, s_heading_buf);
 	text_layer_set_text_alignment(distance, GTextAlignmentCenter);
 	layer_add_child(window_get_root_layer(window), text_layer_get_layer(distance));
 	
@@ -112,13 +124,13 @@ static void inbox_received_callback(DictionaryIterator *iter, void *context)
 	Tuple *t = dict_read_first(iter);
 	while(t != NULL) 
 	{
-		if(t->key == KEY_BERING)
-		{
+		
 			int x = (t->value->int32);
 			bering = x/1000;
-		}
-		t = dict_read_next(iter);
+			layer_mark_dirty(s_path_layer);
+			t = dict_read_next(iter);
 	}	
+	app_comm_set_sniff_interval(SNIFF_INTERVAL_NORMAL);
 }
 
 static void main_window_unload(Window *window)
@@ -128,6 +140,7 @@ static void main_window_unload(Window *window)
 	text_layer_destroy(timeTo);
 	text_layer_destroy(output);
 	text_layer_destroy(s_output_layer);
+	text_layer_destroy(s_heading_layer);
 	layer_destroy(s_path_layer);
 	gpath_destroy(s_needle_north);
 }
@@ -149,19 +162,16 @@ static void init ()
 	app_message_register_outbox_failed(outbox_failed_callback);
 	app_message_register_outbox_sent(outbox_sent_callback);
 	app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
+	compass_service_set_heading_filter(10);
+	compass_service_subscribe(&compass_handler); 
 	main_window = window_create();
 	window_set_window_handlers(main_window, (WindowHandlers)
 	{
 		.load = main_window_load,
 		.unload = main_window_unload
 	});
-		
-	app_message_register_outbox_sent(outbox_sent_handler); 
-	app_message_register_outbox_failed(outbox_failed_handler); 
-	app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
-	compass_service_set_heading_filter(10);
-	compass_service_subscribe(&compass_handler); 
 	window_stack_push(main_window, true);
+	
 
 }
 
