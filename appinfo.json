@@ -1,0 +1,36 @@
+{
+    "appKeys": {
+        "KEY_DATA": 5
+    },
+    "capabilities": [
+        "location"
+    ],
+    "companyName": "austins0692@gmail.com",
+    "longName": "Capitol One ATM Locator",
+    "projectType": "native",
+    "resources": {
+        "media": [
+            {
+                "file": "images/Arrow2.png",
+                "name": "direction_arrow",
+                "type": "png"
+            },
+            {
+                "file": "images/compass_background.png",
+                "name": "COMPASS_BACKGROUND",
+                "type": "png"
+            }
+        ]
+    },
+    "sdkVersion": "3",
+    "shortName": "ATM Locate",
+    "targetPlatforms": [
+        "aplite",
+        "basalt"
+    ],
+    "uuid": "5ec1ba20-9b7f-4bbf-af47-6818a16e1a30",
+    "versionLabel": "1.0",
+    "watchapp": {
+        "watchface": false
+    }
+}
